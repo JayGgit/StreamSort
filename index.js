@@ -7,6 +7,7 @@ const express = require("express")
 const app = express()
 const WebSocket = require('ws')
 const { send } = require("process")
+const open = require('open').default
 
 const port = 8000
 
@@ -62,6 +63,7 @@ app.get("/api/startTranscription", (req, res) => {
 
 app.listen(port, () => {
     console.log("Server running on localhost:" + port)
+    open('http://localhost:' + port)
 })
 
 // Transcription and Twitch integrations

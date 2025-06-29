@@ -72,6 +72,22 @@ function updateHTMLSortTable() {
     })
 }
 
+function checkSorted() {
+    for (let i = 0; i < toBeSorted.length - 1; i++) {
+        if (toBeSorted[i] > toBeSorted[i + 1]) {
+            return false
+        }
+    }
+    document.getElementById("currentWord").innerText = "Sorting completed!"
+    document.getElementById("toggleSort").innerText = "Start Sorting"
+    document.querySelectorAll(".sortBar").forEach(bar => {
+        bar.classList.add("completedBar")
+        bar.classList.remove("selectedBar")
+    })
+    isSorting = false
+    return true
+}
+
 function queueWords(words) {
     words.split(" ").forEach((word) => {
         word = word.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()
@@ -99,7 +115,7 @@ function checkWordBogo(word) {
 
 setInterval(() => {
     // Check queued words and if we're sorting
-    if (queuedWords.length > 0 && isSorting) {
+    if (queuedWords.length > 0 && isSorting && !checkSorted()) {
         currentActionMessage = document.getElementById("currentWord")
         const word = queuedWords.shift()
 
@@ -110,6 +126,13 @@ setInterval(() => {
 
             if (action == 1) {
                 // Move selected left
+
+                // First check if moving left would sort the array
+                if (selectedIndex > 0 && toBeSorted[selectedIndex - 1] < selectedValue) {
+                    currentActionMessage.innerText += " Move to the left (Canceled since it is already sorted)"
+                    currentActionMessage.innerHTML = "<i class='ci-Arrow_Left_LG'></i> " + currentActionMessage.innerText
+                    return
+                }
                 if (selectedIndex > 0) {
                     currentActionMessage.innerText += " Move to the left"
                     currentActionMessage.innerHTML = "<i class='ci-Arrow_Left_LG'></i> " + currentActionMessage.innerText
@@ -125,6 +148,13 @@ setInterval(() => {
             }
             if (action == 2) {
                 // Move selected right
+
+                // First check if moving right would sort the array
+                if (selectedIndex < toBeSorted.length - 1 && toBeSorted[selectedIndex + 1] > selectedValue) {
+                    currentActionMessage.innerText += " Move to the right (Canceled since it is already sorted)"
+                    currentActionMessage.innerHTML = "<i class='ci-Arrow_Right_LG'></i> " + currentActionMessage.innerText
+                    return
+                }
                 if (selectedIndex < toBeSorted.length - 1) {
                     currentActionMessage.innerText += " Move to the right"
                     currentActionMessage.innerHTML = "<i class='ci-Arrow_Right_LG'></i> " + currentActionMessage.innerText
@@ -162,9 +192,8 @@ setInterval(() => {
                 }
             }
         }
+        updateHTMLSortTable()
     }
-
-    updateHTMLSortTable()
 }, 500)
 
 document.getElementById("generate").addEventListener("click", (event) => {
@@ -172,6 +201,7 @@ document.getElementById("generate").addEventListener("click", (event) => {
     for (let i = 0; i < 10; i++) {
         addSortNumber(Math.floor(Math.random() * 10) + 1)
     }
+    updateHTMLSortTable()
 })
 
 document.getElementById("toggleSort").addEventListener("click", (event) => {

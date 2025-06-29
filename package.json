@@ -25,6 +25,7 @@
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
     "nodejs-whisper": "^0.2.9",
+    "open": "^10.1.2",
     "ws": "^8.18.2"
   }
 }
