@@ -1,0 +1,36 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamSort</title>
+    <link rel="stylesheet" href="/sort.css">
+    <link rel="stylesheet" href="/coolicons.css">
+</head>
+
+<body>
+    <div class="leftStreamWrapper">
+        <div class="embedWrapper">
+            <iframe id="twitchEmbed" class="twitchEmbed" height="30%" width="50%" allowfullscreen>
+            </iframe>
+        </div>
+        <div class="transcriptionWrapper" id="transcriptionWrapper">
+            
+        </div>
+    </div>
+
+    <div class="rightSortWrapper">
+        <div class="sortTable" id="sortTable">
+
+        </div>
+        <div class="sortInfoWrapper" id="sortInfoWrapper">
+            <p class="currentWord" id="currentWord"></p>
+        </div>
+        <div class="sortButtonWrapper" id="sortButtonWrapper">
+            <button class="sortButton" id="generate">Generate Random Array</button>
+            <button class="sortButton" id="toggleSort">Start Sort</button>
+        </div>
+    </div>
+</body>
+
+<script src="/sort.js"></script>
+</html>

@@ -1,0 +1,74 @@
+* {
+    transition: all 0.25s ease-in-out;
+    overflow: hidden;
+}
+
+.channelWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2vw;
+    height: 90%;
+}
+.channelAndNotesWrapper {
+    height: 100vh;
+}
+.channelImage {
+    width: 10vw;
+    height: 10vw;
+    border-radius: 50%;
+    display: none;
+}
+.channelName {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 10vw;
+    border: none;
+    color: #000;
+    width: 75vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.channelName:focus {
+    outline: none;
+}
+.offlineWarning {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1em;
+    color: transparent;
+    position: absolute;
+    right: 20vw;
+    top: 75vh;
+}
+
+.selectChannel {
+    width: 75vw;
+    padding: 32px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 3vw;
+    color: #000000;
+    background-color: transparent;
+    border: 4px solid #000000;
+    border-radius: 16px;
+    display: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+.selectChannel:hover {
+    font-size: 3.5vw;
+    background-color: #9146FF;
+    color: #ffffff;
+    border: 4px solid transparent;
+    border-radius: 8px;
+    box-shadow: 32px 32px #000000;
+}
+.selectChannel:active {
+    transition: all 0.1s ease-in-out;
+    font-size: 2.5vw;
+    background-color: #9146FF;
+    color: #ffffff;
+    border: 4px solid transparent;
+    border-radius: 8px;
+    box-shadow: 0px 0px #000000;
+}
