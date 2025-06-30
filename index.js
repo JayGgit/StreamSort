@@ -338,7 +338,7 @@ let currentDemoChannelDisplayName = null
 let currentDemoChannelProfilePicture = null
 
 async function refreshDemoChannel() {
-    setInterval(demoModeChannelRefresh, 60 * 60 * 1000) // Refresh every hour
+    setInterval(demoModeChannelRefresh, 15 * 60 * 1000) // Refresh every 15 minutes
 }
 
 async function demoModeChannelRefresh() {
