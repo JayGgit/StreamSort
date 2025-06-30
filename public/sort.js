@@ -16,7 +16,7 @@ function startBackendTranscription() {
 }
 
 function startWebsocket() {
-    const serverUrl = 'ws://localhost:8001'
+    const serverUrl = 'ws://localhost:8000'
     const connection = new WebSocket(serverUrl)
 
     connection.onopen = () => {

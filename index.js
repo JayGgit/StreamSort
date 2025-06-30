@@ -1,3 +1,8 @@
+// CHANGE WHEN NECESSARY
+const demo = false // If you're running this locally, set this to false.
+
+
+
 const axios = require("axios")
 const env = require("dotenv").config()
 const { spawn } = require("child_process")
@@ -11,8 +16,6 @@ const open = require('open').default
 
 const port = 8000
 
-const wss = new WebSocket.Server({ port: 8001 }) // Websocket for real time transcriptions
-
 let currentTranscriptingChannel = null
 
 app.use(express.static("public"))
@@ -25,7 +28,24 @@ app.get("/sort", (req, res) => {
     res.send(fs.readFileSync("public/sort.html", "utf8"))
 })
 
+app.get("/api/demo", (req, res) => {
+    if (demo) {
+        return res.status(200).json({
+            "demo": true,
+            "channelName": currentDemoChannel,
+            "displayName": currentDemoChannelDisplayName,
+            "profilePicture": currentDemoChannelProfilePicture
+        })
+    } else {
+        return false
+    }
+})
+
 app.get("/api/liveStatus", async (req, res) => {
+    if (demo) {
+        return res.status(200).json({ error: "Demo mode is enabled. Custom transcriptions not enabled." })
+    }
+
     const channelName = req.query.channelName
 
     if (!channelName) {
@@ -37,6 +57,10 @@ app.get("/api/liveStatus", async (req, res) => {
 })
 
 app.get("/api/channelInfo", async (req, res) => {
+    if (demo) {
+        return res.status(200).json({ error: "Demo mode is enabled. Custom transcriptions not enabled." })
+    }
+
     const channelName = req.query.channelName
     if (!channelName) {
         return res.status(400).json({ error: "Channel name is required" })
@@ -49,7 +73,14 @@ app.get("/api/channelInfo", async (req, res) => {
 })
 
 app.get("/api/startTranscription", (req, res) => {
-    const channelName = req.query.channelName
+    channelName = null
+    if (demo) {
+        console.log(currentDemoChannel)
+        channelName = currentDemoChannel
+    }
+    else {
+        channelName = req.query.channelName
+    }
 
     if (channelName === currentTranscriptingChannel) {
         return res.status(200).json({ error: "Transcription is already in progress for this channel. Tune into current websocket" })
@@ -61,10 +92,21 @@ app.get("/api/startTranscription", (req, res) => {
     res.json({ message: "Transcription started" })
 })
 
-app.listen(port, () => {
+app.get("/api/stopTranscription", (req, res) => {
+    if (demo) {
+        return res.status(200).json({ error: "Demo mode is enabled. Custom transcriptions not enabled." })
+    }
+
+    stopTranscribing()
+    res.status(200).json({ message: "Transcription stopped" })
+})
+
+const server = app.listen(port, () => {
     console.log("Server running on localhost:" + port)
     open('http://localhost:' + port)
 })
+
+const wss = new WebSocket.Server({ server }) // WebSocket shares the same HTTP server/port
 
 // Transcription and Twitch integrations
 if (env.error) {
@@ -84,6 +126,18 @@ function sendWebsocketMessage(message) {
 
 clientAuthToken = null
 
+async function waitThenRefreshToken(timeout) {
+    setTimeout(async () => {
+        console.log("Refreshing Twitch client authentication token...")
+        clientAuthToken = await getClientAuthToken()
+        if (clientAuthToken) {
+            console.log("Twitch client authentication token refreshed successfully.")
+        } else {
+            console.error("Failed to refresh Twitch client authentication token.")
+        }
+    }, timeout)
+}
+
 async function getClientAuthToken() { // Getting a Twitch client authentication token and returning it
     response = await axios.post("https://id.twitch.tv/oauth2/token", null, {
         params: {
@@ -94,6 +148,7 @@ async function getClientAuthToken() { // Getting a Twitch client authentication 
     })
 
     if (response.data.access_token) {
+        waitThenRefreshToken(3600 * 1000) // Refresh token before it expires, in milliseconds (set to 1 hour)
         return response.data.access_token
     }
     return null
@@ -121,17 +176,33 @@ async function getChannelInfo(channelName) { // Getting information about a Twit
     }
 }
 
+async function getTopStream() { // Get the top stream on Twitch, used for demo mode
+    response = await axios.get(`https://api.twitch.tv/helix/streams?first=1`, {
+        headers: {
+            "Client-ID": process.env.id,
+            "Authorization": `Bearer ${clientAuthToken}`
+        }
+    })
+
+    if (response.data.data[0]) {
+        return response.data.data[0]
+    }
+}
+
+let streamlink = null
+let ffmpeg = null
+
 async function transcribeStream(channelName) {
     const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en')
 
-    const streamlink = spawn("streamlink", [
+    streamlink = spawn("streamlink", [
         `https://www.twitch.tv/${channelName}`,
         "audio_only",
         "--stdout"
     ]);
 
     // Use FFmpeg to decode the HLS stream to PCM
-    const ffmpeg = spawn("ffmpeg", [
+    ffmpeg = spawn("ffmpeg", [
         "-i", "pipe:0",        // Input from streamlink (HLS segments)
         "-vn",                 // No video
         "-acodec", "pcm_s16le", // Convert to PCM 16-bit little endian
@@ -237,8 +308,57 @@ async function transcribeStream(channelName) {
     })
 }
 
+async function stopTranscribing() {
+    if (currentTranscriptingChannel) {
+        console.log(`Stopping transcription for channel: ${currentTranscriptingChannel}`)
+        currentTranscriptingChannel = null
+        // Stop ffmpeg and streamlink processes if they exist
+        if (typeof ffmpeg !== 'undefined' && ffmpeg && !ffmpeg.killed) {
+            ffmpeg.kill('SIGKILL')
+        }
+        if (typeof streamlink !== 'undefined' && streamlink && !streamlink.killed) {
+            streamlink.kill('SIGKILL')
+        }
+        sendWebsocketMessage("Transcription stopped.")
+    } else {
+        console.log("No transcription in progress")
+    }
+}
+
 async function getTwitchToken() {
     clientAuthToken = await getClientAuthToken()
 }
 
 getTwitchToken()
+
+// Demo mode functionality
+
+let currentDemoChannel = null
+let currentDemoChannelDisplayName = null
+let currentDemoChannelProfilePicture = null
+
+async function refreshDemoChannel() {
+    setInterval(demoModeChannelRefresh, 60 * 60 * 1000) // Refresh every hour
+}
+
+async function demoModeChannelRefresh() {
+    refreshDemoChannel()
+    while (!clientAuthToken) {
+        await new Promise(resolve => setTimeout(resolve, 100)) // Wait for clientAuthToken to be set
+    }
+    const topStream = await getTopStream()
+    if (topStream) {
+        channelName = topStream.user_name
+        console.log(`Demo mode active. Using channel: ${channelName}`)
+        currentDemoChannel = channelName
+        getChannelInfo(channelName).then(info => {
+            currentDemoChannelProfilePicture = info.profile_image_url
+            currentDemoChannelDisplayName = info.display_name
+        })
+    }
+}
+
+if (demo) {
+    console.log("DEMO MODE ENABLED. IF YOU DO NOT KNOW WHAT THIS IS, DISABLE IT IN index.js")
+    demoModeChannelRefresh()
+}
